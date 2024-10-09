@@ -1,0 +1,21 @@
+# Exceptions: Allow pushing .crt certificates
+!*.crt
+
+# Ignore all private keys
+*.key
+
+# Ignore configuration files that may contain sensitive information
+*.config
+*.env
+
+# Ignore any .pem file (may contain keys)
+*.pem
+
+# Ignore all the .pio and .vscode folders
+.pio
+.vscode
+
+# Ignore folders that may contain unsafe keys or certificates
+keys/
+secrets/
+certs/private/
