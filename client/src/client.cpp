@@ -5,32 +5,40 @@
 
 // Own libraries
 #include "client.h"
+#include "utils.h"
+
+/* ********************************************************************************************* */
+
+// Logging TAG
+const char* TAG = "Client";
 
 // WiFiClient for secure and not secure connection
 WiFiClient client;
 WiFiClientSecure secureClient;
 
+/* ********************************************************************************************* */
+
 void setupWiFi(const char* ssid, const char* password) {
     WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi ");
+    logMessage(TAG, "Connecting to WiFi");
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
-        Serial.print(".");
+        logMessage(TAG, ".");
     }
-    Serial.println("\nConnected to WiFi");
+    logMessage(TAG, "\nConnected to WiFi.");
 }
 
 void secureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
     // Initialize SPIFFS (file system)
     if (!SPIFFS.begin(true)) {
-        Serial.println("Failed to mount SPIFFS");
+        logMessage(TAG, "Failed to mount SPIFFS.");
         return;
     }
 
     // Load the CA certificate manually from SPIFFS
     File caFile = SPIFFS.open("/ca.crt", "r");
     if (!caFile) {
-        Serial.println("Failed to open CA certificate file");
+        logMessage(TAG, "Failed to open CA certificate file.");
         return;
     }
     String caCert = caFile.readString();
@@ -38,12 +46,12 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the CA certificate
     secureClient.setCACert(caCert.c_str());
-    Serial.println("CA certificate loaded");
+    logMessage(TAG, "CA certificate loaded");
 
     // Load the client certificate manually from SPIFFS
     File clientCertFile = SPIFFS.open("/client.crt", "r");
     if (!clientCertFile) {
-        Serial.println("Failed to open client certificate file");
+        logMessage(TAG, "Failed to open client certificate file.");
         return;
     }
     String clientCert = clientCertFile.readString();
@@ -51,12 +59,12 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the client certificate
     secureClient.setCertificate(clientCert.c_str());
-    Serial.println("Client certificate loaded");
+    logMessage(TAG, "Client certificate loaded.");
 
     // Load the client key manually from SPIFFS
     File clientKeyFile = SPIFFS.open("/client.key", "r");
     if (!clientKeyFile) {
-        Serial.println("Failed to open client key file");
+        logMessage(TAG, "Failed to open client key file.");
         return;
     }
     String clientKey = clientKeyFile.readString();
@@ -64,38 +72,40 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the client private key
     secureClient.setPrivateKey(clientKey.c_str());
-    Serial.println("Client private key loaded");
+    logMessage(TAG, "Client private key loaded.");
 
     // Attempt to establish a secure connection
     if (secureClient.connect(serverAddress, serverPort)) {
-        Serial.println("Secure connection established");
+        logMessage(TAG, "Secure connection established.");
         secureClient.println(clientSecretKey);
         while (secureClient.connected()) {
             if (secureClient.available()) {
                 String response = secureClient.readStringUntil('\n');
-                Serial.println("Secure response from server: " + response);
+                logMessage(TAG, (String("Secure response from server: ") + response).c_str());
             }
         }
         secureClient.stop();
-        Serial.println("Secure connection closed");
+        logMessage(TAG, "Secure connection closed.");
     } else {
-        Serial.println("Secure connection failed");
+        logMessage(TAG, "Secure connection failed.");
     }
 }
 
 void notSecureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
     if (client.connect(serverAddress, serverPort)) {
-        Serial.println("Connected to server");
+        logMessage(TAG, "Connected to server.");
         client.println(clientSecretKey);
         while (client.connected()) {
             if (client.available()) {
                 String response = client.readStringUntil('\n');
-                Serial.println("Response from server: " + response);
+                logMessage(TAG, (String("Response from server: ") + response).c_str());
             }
         }
         client.stop();
-        Serial.println("Disconnected from server");
+        logMessage(TAG, "Disconnected from server.");
     } else {
-        Serial.println("Connection to server failed");
+        logMessage(TAG, "Connection to server failed.");
     }
 }
+
+/* ********************************************************************************************* */
