@@ -11,6 +11,16 @@ const char* password = "YOUR_PASSWORD";
 
 // Flag to determine if the connection should be secure or not
 bool useSecureConnection = true;
+#include <WiFi.h>
+#include <SPIFFS.h>
+#include "server.h"
+
+// WiFi credentials
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+// Flag to determine if the connection should be secure or not
+bool useSecureConnection = true;
 
 void setup() {
     Serial.begin(115200);
@@ -30,12 +40,8 @@ void setup() {
     // Connect to WiFi
     setupWiFi(ssid, password);
 
-    // Start the appropriate server
-    if (useSecureConnection) {
-        startSecureServer(443);
-    } else {
-        startNonSecureServer(80);
-    }
+    // Start the server (secure or non-secure based on the flag)
+    startServer(useSecureConnection ? 443 : 80, useSecureConnection);
 }
 
 void loop() {}

@@ -4,7 +4,6 @@
 #include <Arduino.h>
 
 void setupWiFi(const char* ssid, const char* password);
-void startSecureServer(int port);
-void startNonSecureServer(int port);
+void startServer(int port, bool useSecureConnection);
 
 #endif
