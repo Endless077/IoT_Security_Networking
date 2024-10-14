@@ -5,6 +5,14 @@
 #include <time.h>
 #include <SPIFFS.h> 
 
+// Settings Global Variables
+const int redLED = 4;
+const int greenLED = 13;
+
+int currentLED = -1;
+unsigned long ledTimer = 0;
+const unsigned long ledDuration = 2000;
+
 /* ********************************************************************************************* */
 
 // Logging Function
@@ -18,6 +26,17 @@ void logMessage(const char* tag, const char* message) {
     char timeStamp[32];
     strftime(timeStamp, sizeof(timeStamp), "%d/%m/%Y %H:%M:%S", timeInfo);
     Serial.printf("[%s - %s] %s\n", tag, timeStamp, message);
+}
+
+// Reset the current service
+void resetService() {
+    // Check if the LED needs to be turned off
+    if (currentLED != -1 && millis() - ledTimer >= ledDuration) {
+        // Turn off the LED that was on
+        digitalWrite(currentLED, LOW);
+        // Reset the current LED indicator
+        currentLED = -1;
+    }
 }
 
 // Support SPIFFS Functions

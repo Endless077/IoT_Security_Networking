@@ -7,7 +7,7 @@
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = true;
+bool securityFlag = false;
 
 /* ********************************************************************************************* */
 
@@ -28,9 +28,9 @@ void setup() {
     // Setup LED pins
     logMessage("BOOT", "Setup the digitla Pins");
     pinMode(2, OUTPUT);
-    pinMode(4, OUTPUT);
+    pinMode(13, OUTPUT);
     digitalWrite(2, LOW);
-    digitalWrite(4, LOW);
+    digitalWrite(13, LOW);
 
     // Initialize SPIFFS
     if (!SPIFFS.begin(true)) {
@@ -48,11 +48,28 @@ void setup() {
 }
 
 void loop() {
-    // The server may reconnect after a delay
-    // Wait 10 seconds before the next attempt
-    logMessage("BOOT", "loop()");
-    delay(10000);
-    return;
+  // Check and reset the service
+  resetService();
+
+  // Set the server in Idle mode
+  if (securityFlag) {
+    // Server HTTPS
+    if (serverHTTPS != nullptr && serverHTTPS->isRunning()) {
+      serverHTTPS->loop();
+    } else {
+      logMessage("BOOT", "Server HTTPS non disponibile.");
+    }
+  } else {
+    // Server HTTP
+    if (serverHTTP != nullptr && serverHTTP->isRunning()) {
+      serverHTTP->loop();
+    } else {
+      logMessage("BOOT", "Server HTTP non disponibile.");
+      }
+    }
+
+  // Add a small delay to avoid excessive CPU usage
+  delay(10);
 }
 
 /* ********************************************************************************************* */

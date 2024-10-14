@@ -7,7 +7,7 @@
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = true;
+bool securityFlag = false;
 
 // Variable to hold the client secret key read from the file
 String clientKey = "";

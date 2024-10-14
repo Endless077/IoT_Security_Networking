@@ -11,35 +11,25 @@
 // Define the certificate data for the server
 #include <SSLCert.hpp>
 
-// Includes to define request handler callbacks
+// Define request handler callbacks
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 
-// Required do define ResourceNodes
+// Required for ResourceNodes definition
 #include <ResourceNode.hpp>
 
 // Own libraries
 #include "server.h"
 #include "utils.h"
 
-// Access to the classes of the server
+// Using namespace
 using namespace httpsserver;
 
 /* ********************************************************************************************* */
 
-// Logging TAG
-const char* TAG = "Server";
-
-// Global instance for server
-HTTPSServer *server;
-
-// Define LED pins
-const int greenLED = 2;
-const int redLED = 4;
-
-int currentLED = -1;
-unsigned long ledTimer = 0;
-const unsigned long ledOnDuration = 2000;
+const char* LOG = "Server";
+HTTPServer *serverHTTP = nullptr;
+HTTPSServer *serverHTTPS = nullptr;
 
 /* ********************************************************************************************* */
 
@@ -48,7 +38,7 @@ void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
     // Check if the connection is secure
     if (!req->isSecure()) {
         // Turn on the red LED for a not-secure or suspicious connection
-        logMessage(TAG, "Not-secure connection detected, alarm started.");
+        logMessage(LOG, "Not-secure connection detected, alarm started.");
         digitalWrite(redLED, HIGH);
         return;
     } else {
@@ -70,10 +60,10 @@ void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
         String clientKeyStr = String(clientKey);
 
         // Load the stored key from SPIFFS
-        String storedKey = readFileFromSPIFFS(TAG, "/secret.txt");
+        String storedKey = readFileFromSPIFFS(LOG, "/secret.txt");
 
         if (storedKey.isEmpty()) {
-            logMessage(TAG, "Failed to open secret.txt");
+            logMessage(LOG, "Failed to open secret.txt");
             res->setStatusCode(500);
             res->println("Error reading server key");
             digitalWrite(redLED, HIGH);
@@ -82,12 +72,12 @@ void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
 
         // Compare the client key with the stored key
         if (clientKeyStr == storedKey) {
-            logMessage(TAG, "Client key matches.");
+            logMessage(LOG, "Client key matches.");
             res->setStatusCode(200);
             res->println("Success.");
             digitalWrite(greenLED, HIGH);
         } else {
-            logMessage(TAG, "Client key does not match.");
+            logMessage(LOG, "Client key does not match.");
             res->setStatusCode(401);
             res->println("Failure");
             digitalWrite(redLED, HIGH);
@@ -102,29 +92,33 @@ void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
 
 void setupWiFi(const char* ssid, const char* password) {
     WiFi.begin(ssid, password);
-    logMessage(TAG, "Connecting to WiFi");
+    logMessage(LOG, "Connecting to WiFi");
+    
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
-        logMessage(TAG, ".");
+        logMessage(LOG, ".");
     }
-    logMessage(TAG, "\nConnected to WiFi.");
+
+    logMessage(LOG, (String("IP Address: ") + WiFi.localIP().toString()).c_str());
+    logMessage(LOG, "Connected to WiFi.");
 }
 
 void startServer(int port, bool securityFlag) {
-    // Mount SPIFFS
+    // Find and Mount SPIFFS
     if (!SPIFFS.begin(true)) {
-        logMessage(TAG, "Failed to mount SPIFFS.");
+        logMessage(LOG, "Failed to mount SPIFFS.");
         return;
     }
 
+    // Check if secuirty should be enabled
     if (securityFlag) {
         // Load server certificate and key in DER format from SPIFFS
         size_t certSize, keySize;
-        unsigned char* serverCert = readBinaryFileFromSPIFFS(TAG, "/server_cert.der", &certSize);
-        unsigned char* serverKey = readBinaryFileFromSPIFFS(TAG, "/server_key.der", &keySize);
+        unsigned char* serverCert = readBinaryFileFromSPIFFS(LOG, "/server_cert.der", &certSize);
+        unsigned char* serverKey = readBinaryFileFromSPIFFS(LOG, "/server_key.der", &keySize);
 
         if (!serverCert || !serverKey) {
-            logMessage(TAG, "Error loading certificates or private key.");
+            logMessage(LOG, "Error loading certificates or private key.");
             return;
         }
 
@@ -132,40 +126,33 @@ void startServer(int port, bool securityFlag) {
         SSLCert *cert = new SSLCert(serverCert, certSize, serverKey, keySize);
 
         // Create HTTPS server using the SSL certificate
-        server = new HTTPSServer(cert, port);
-        logMessage(TAG, "Secure server started.");
+        serverHTTPS = new HTTPSServer(cert, port);
+        logMessage(LOG, "Secure server init complete.");
 
-        // Free the memory after creating the certificate
+        // Define a resource for the root path
+        ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
+        serverHTTP->registerNode(node);
+
+        // Start the server
+        serverHTTP->start();
+        logMessage(LOG, "Authenticated Server started at port 443 in the root path.");
+
+        // Erase the memory after creating the certificate
         delete[] serverCert;
         delete[] serverKey;
+
     } else {
         // Non-secure server: do not load certificates
-        server = new HTTPSServer(nullptr, port);
-        logMessage(TAG, "Non-secure server started.");
-    }
+        serverHTTP = new HTTPServer(port);
+        logMessage(LOG, "Non-secure server init complete.");
 
-    // Define a resource for the root path
-    ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
-    server->registerNode(node);
+        // Define a resource for the root path
+        ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
+        serverHTTP->registerNode(node);
 
-    // Start the server
-    server->start();
-
-    // Main loop to handle client requests
-    while (true) {
-        // Check if the LED needs to be turned off
-        if (currentLED != -1 && millis() - ledTimer >= ledOnDuration) {
-            // Turn off the LED that was on
-            digitalWrite(currentLED, LOW);
-            // Reset the current LED indicator
-            currentLED = -1;
-        }
-
-        // Set the server in Idle mode
-        server->loop();
-
-        // Add a small delay to avoid excessive CPU usage
-        delay(10);
+        // Start the server
+        serverHTTP->start();
+        logMessage(LOG, "Unauthenticated Server started at port 80 in the root path.");
     }
 }
 

@@ -9,10 +9,8 @@
 
 /* ********************************************************************************************* */
 
-// Logging TAG
-const char* TAG = "Client";
+const char* LOG = "Client";
 
-// WiFiClient for secure and not secure connection
 WiFiClient client;
 WiFiClientSecure secureClient;
 
@@ -20,25 +18,28 @@ WiFiClientSecure secureClient;
 
 void setupWiFi(const char* ssid, const char* password) {
     WiFi.begin(ssid, password);
-    logMessage(TAG, "Connecting to WiFi");
+    logMessage(LOG, "Connecting to WiFi");
+    
     while (WiFi.status() != WL_CONNECTED) {
         delay(1000);
-        logMessage(TAG, ".");
+        logMessage(LOG, ".");
     }
-    logMessage(TAG, "\nConnected to WiFi.");
+
+    logMessage(LOG, (String("IP Address: ") + WiFi.localIP().toString()).c_str());
+    logMessage(LOG, "Connected to WiFi.");
 }
 
 void secureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
     // Initialize SPIFFS (file system)
     if (!SPIFFS.begin(true)) {
-        logMessage(TAG, "Failed to mount SPIFFS.");
+        logMessage(LOG, "Failed to mount SPIFFS.");
         return;
     }
 
     // Load the CA certificate manually from SPIFFS
     File caFile = SPIFFS.open("/ca.crt", "r");
     if (!caFile) {
-        logMessage(TAG, "Failed to open CA certificate file.");
+        logMessage(LOG, "Failed to open CA certificate file.");
         return;
     }
     String caCert = caFile.readString();
@@ -46,12 +47,12 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the CA certificate
     secureClient.setCACert(caCert.c_str());
-    logMessage(TAG, "CA certificate loaded");
+    logMessage(LOG, "CA certificate loaded");
 
     // Load the client certificate manually from SPIFFS
     File clientCertFile = SPIFFS.open("/client.crt", "r");
     if (!clientCertFile) {
-        logMessage(TAG, "Failed to open client certificate file.");
+        logMessage(LOG, "Failed to open client certificate file.");
         return;
     }
     String clientCert = clientCertFile.readString();
@@ -59,12 +60,12 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the client certificate
     secureClient.setCertificate(clientCert.c_str());
-    logMessage(TAG, "Client certificate loaded.");
+    logMessage(LOG, "Client certificate loaded.");
 
     // Load the client key manually from SPIFFS
     File clientKeyFile = SPIFFS.open("/client.key", "r");
     if (!clientKeyFile) {
-        logMessage(TAG, "Failed to open client key file.");
+        logMessage(LOG, "Failed to open client key file.");
         return;
     }
     String clientKey = clientKeyFile.readString();
@@ -72,39 +73,39 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Set the client private key
     secureClient.setPrivateKey(clientKey.c_str());
-    logMessage(TAG, "Client private key loaded.");
+    logMessage(LOG, "Client private key loaded.");
 
     // Attempt to establish a secure connection
     if (secureClient.connect(serverAddress, serverPort)) {
-        logMessage(TAG, "Secure connection established.");
+        logMessage(LOG, "Secure connection established.");
         secureClient.println(clientSecretKey);
         while (secureClient.connected()) {
             if (secureClient.available()) {
                 String response = secureClient.readStringUntil('\n');
-                logMessage(TAG, (String("Secure response from server: ") + response).c_str());
+                logMessage(LOG, (String("Secure response from server: ") + response).c_str());
             }
         }
         secureClient.stop();
-        logMessage(TAG, "Secure connection closed.");
+        logMessage(LOG, "Secure connection closed.");
     } else {
-        logMessage(TAG, "Secure connection failed.");
+        logMessage(LOG, "Secure connection failed.");
     }
 }
 
 void notSecureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
     if (client.connect(serverAddress, serverPort)) {
-        logMessage(TAG, "Connected to server.");
+        logMessage(LOG, "Connected to server.");
         client.println(clientSecretKey);
         while (client.connected()) {
             if (client.available()) {
                 String response = client.readStringUntil('\n');
-                logMessage(TAG, (String("Response from server: ") + response).c_str());
+                logMessage(LOG, (String("Response from server: ") + response).c_str());
             }
         }
         client.stop();
-        logMessage(TAG, "Disconnected from server.");
+        logMessage(LOG, "Disconnected from server.");
     } else {
-        logMessage(TAG, "Connection to server failed.");
+        logMessage(LOG, "Connection to server failed.");
     }
 }
 
