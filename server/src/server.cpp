@@ -36,51 +36,53 @@ HTTPSServer *serverHTTPS = nullptr;
 // Handle client requests function
 void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
     // Check if the connection is secure
-    if (!req->isSecure()) {
-        // Turn on the red LED for a not-secure or suspicious connection
-        logMessage(LOG, "Not-secure connection detected, alarm started.");
-        digitalWrite(redLED, HIGH);
-        return;
+    if (serverHTTPS != nullptr) {
+        if (!req->isSecure()) {
+            // Turn on the red LED for a not-secure or suspicious connection
+            logMessage(LOG, "Not-secure connection detected, alarm started.");
+            setLedStatus(redLED, true);
+            return;
+        } else {
+            // Turn off the red LED if the connection is secure
+            setLedStatus(redLED, false);
+        }
     } else {
-        // Turn off the red LED if the connection is secure
-        digitalWrite(redLED, LOW);
+        // Log message indicating a HTTP Unsafe connection
+        logMessage(LOG, "Not-secure connection started via HTTP.");
     }
 
-    // Determine the length of the request body
-    size_t contentLength = req->getContentLength();
+    // Init size and content of the request
+    size_t contentLength = 0;
+    String bodyContent = "";
+
+    // Print all Metadata available
+    requestMetadata(contentLength, bodyContent, req, res);
 
     // Check if there is any request body
     if (contentLength > 0) {
-        // Create a character buffer to store the clientKey
-        char clientKey[contentLength + 1];
-        req->readBytes((byte*)clientKey, contentLength);
-        clientKey[contentLength] = '\0';
-
-        // Convert the character buffer to a String
-        String clientKeyStr = String(clientKey);
-
         // Load the stored key from SPIFFS
-        String storedKey = readFileFromSPIFFS(LOG, "/secret.txt");
+        String storedKey = readFileFromSPIFFS("/secret.txt");
 
+        // Check if the stored key is correctly uploaded
         if (storedKey.isEmpty()) {
             logMessage(LOG, "Failed to open secret.txt");
             res->setStatusCode(500);
             res->println("Error reading server key");
-            digitalWrite(redLED, HIGH);
+            setLedStatus(redLED, true);
             return;
         }
-
+        
         // Compare the client key with the stored key
-        if (clientKeyStr == storedKey) {
+        if (bodyContent == storedKey) {
             logMessage(LOG, "Client key matches.");
             res->setStatusCode(200);
-            res->println("Success.");
-            digitalWrite(greenLED, HIGH);
+            res->println("Success, the client key and the stored key matches.");
+            setLedStatus(greenLED, true);
         } else {
             logMessage(LOG, "Client key does not match.");
             res->setStatusCode(401);
-            res->println("Failure");
-            digitalWrite(redLED, HIGH);
+            res->println("Failure, the client key and the stored key does not match.");
+            setLedStatus(redLED, true);
         }
     } else {
         res->setStatusCode(400);
@@ -114,8 +116,8 @@ void startServer(int port, bool securityFlag) {
     if (securityFlag) {
         // Load server certificate and key in DER format from SPIFFS
         size_t certSize, keySize;
-        unsigned char* serverCert = readBinaryFileFromSPIFFS(LOG, "/server_cert.der", &certSize);
-        unsigned char* serverKey = readBinaryFileFromSPIFFS(LOG, "/server_key.der", &keySize);
+        unsigned char* serverCert = readBinaryFileFromSPIFFS("/server_cert.der", &certSize);
+        unsigned char* serverKey = readBinaryFileFromSPIFFS("/server_key.der", &keySize);
 
         if (!serverCert || !serverKey) {
             logMessage(LOG, "Error loading certificates or private key.");

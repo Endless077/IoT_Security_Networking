@@ -26,7 +26,7 @@ void setup() {
     Serial.begin(115200);
 
     // Setup LED pins
-    logMessage("BOOT", "Setup the digitla Pins");
+    logMessage("BOOT", "Setup the digital Pins");
     pinMode(2, OUTPUT);
     pinMode(13, OUTPUT);
     digitalWrite(2, LOW);
@@ -48,7 +48,7 @@ void setup() {
 }
 
 void loop() {
-  // Check and reset the service
+  // Check and Reset service
   resetService();
 
   // Set the server in Idle mode
@@ -57,19 +57,19 @@ void loop() {
     if (serverHTTPS != nullptr && serverHTTPS->isRunning()) {
       serverHTTPS->loop();
     } else {
-      logMessage("BOOT", "Server HTTPS non disponibile.");
+      logMessage("BOOT", "Server HTTPS not available.");
     }
   } else {
     // Server HTTP
     if (serverHTTP != nullptr && serverHTTP->isRunning()) {
       serverHTTP->loop();
     } else {
-      logMessage("BOOT", "Server HTTP non disponibile.");
+      logMessage("BOOT", "Server HTTP not available.");
       }
     }
 
   // Add a small delay to avoid excessive CPU usage
-  delay(10);
+  delay(1000);
 }
 
 /* ********************************************************************************************* */

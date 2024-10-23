@@ -77,7 +77,7 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
     // Attempt to establish a secure connection
     if (secureClient.connect(serverAddress, serverPort)) {
-        logMessage(LOG, "Secure connection established.");
+        logMessage(LOG, (String("Secure connection established TO") + serverAddress).c_str());
         secureClient.println(clientSecretKey);
         while (secureClient.connected()) {
             if (secureClient.available()) {
@@ -94,8 +94,21 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
 
 void notSecureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
     if (client.connect(serverAddress, serverPort)) {
-        logMessage(LOG, "Connected to server.");
-        client.println(clientSecretKey);
+        logMessage(LOG, (String("Connected to server with IP: ") + serverAddress).c_str());
+
+        // Getting Request Metadata
+        int bodyLength = String(clientSecretKey).length();
+        String body = String(clientSecretKey);
+
+        String request = String("POST / HTTP/1.1\r\n") +
+                            "Host: " + serverAddress + "\r\n" +
+                            "Content-Type: text/plain\r\n" +
+                            "Content-Length: " + String(bodyLength) + "\r\n" +
+                            "Connection: close\r\n\r\n" +
+                            body;
+                
+        client.println(request);
+
         while (client.connected()) {
             if (client.available()) {
                 String response = client.readStringUntil('\n');

@@ -6,12 +6,11 @@
 #include <SPIFFS.h> 
 
 // Settings Global Variables
-const int redLED = 4;
+const int redLED = 2;
 const int greenLED = 13;
 
-int currentLED = -1;
 unsigned long ledTimer = 0;
-const unsigned long ledDuration = 2000;
+const unsigned long ledDuration = 3000;
 
 /* ********************************************************************************************* */
 
@@ -28,22 +27,86 @@ void logMessage(const char* tag, const char* message) {
     Serial.printf("[%s - %s] %s\n", tag, timeStamp, message);
 }
 
-// Reset the current service
-void resetService() {
-    // Check if the LED needs to be turned off
-    if (currentLED != -1 && millis() - ledTimer >= ledDuration) {
-        // Turn off the LED that was on
-        digitalWrite(currentLED, LOW);
-        // Reset the current LED indicator
-        currentLED = -1;
+// Setting Led Status
+void setLedStatus(int ledPin, int state) {
+    if (state == HIGH) {
+        digitalWrite(ledPin, state);
+        ledTimer = millis();
+    }else{
+        digitalWrite(ledPin, state);
+        ledTimer = 0;
     }
 }
 
+// Reset the current service
+void resetService() {
+    // Check if the LED needs to be turned off
+    if (millis() - ledTimer >= ledDuration) {
+        digitalWrite(redLED, LOW);
+        digitalWrite(greenLED, LOW);
+    }
+}
+
+// Request Metadata
+void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HTTPRequest *req, httpsserver::HTTPResponse *res) {
+    // Logging the Request Metadata
+    logMessage("Metadata", "----- Request Metadata -----");
+
+    // Print client IP address
+    IPAddress clientIP = req->getClientIP();
+    logMessage("Metadata", (String("Client IP: ") + clientIP.toString()).c_str());
+
+    // Print the URL of the request
+    String url = String(req->getRequestString().c_str());
+    logMessage("Metadata", (String("URL: ") + url).c_str());
+
+    // Print the method of the request (GET, POST, etc.)
+    String method = String(req->getMethod().c_str());
+    logMessage("Metadata", (String("Method: ") + method).c_str());
+
+    // Print the headers of the request
+    logMessage("Metadata", "Headers:");
+    httpsserver::HTTPHeaders *headers = req->getHTTPHeaders();
+    std::vector<httpsserver::HTTPHeader *> *headerList = headers->getAll();
+
+    for (auto header : *headerList) {
+        logMessage("Metadata", (String(header->_name.c_str()) + ": " + String(header->_value.c_str())).c_str());
+    }
+
+    // Set the content length of the request
+    contentLength = req->getContentLength();
+    logMessage("Metadata", (String("Content-Length: ") + String(contentLength)).c_str());
+
+    // Log the body of the request if it exists
+    if (contentLength > 0) {
+        // Allocate buffer for reading the content
+        char *buffer = new char[contentLength + 1];
+        size_t bytesRead = req->readChars(buffer, contentLength);
+
+        // Null-terminate the content to treat it as a string
+        buffer[bytesRead] = '\0';
+
+        // Set the body content
+        bodyContent = String(buffer);
+
+        // Log the body content
+        logMessage("Metadata", (String("Body Content: ") + bodyContent).c_str());
+
+        // Free the buffer
+        delete[] buffer;
+    } else {
+        bodyContent = "";
+        logMessage("Metadata", "No Body Content");
+    }
+
+    logMessage("Metadata", "----------------------------");
+}
+
 // Support SPIFFS Functions
-String readFileFromSPIFFS(const char* tag, const char* path) {
+String readFileFromSPIFFS(const char* path) {
     File file = SPIFFS.open(path, "r");
     if (!file) {
-        logMessage(tag, (String("Failed to open file: ") + path).c_str());
+        logMessage("SPIFFS", (String("Failed to open file: ") + path).c_str());
         return String();
     }
     String content = file.readString();
@@ -51,10 +114,10 @@ String readFileFromSPIFFS(const char* tag, const char* path) {
     return content;
 }
 
-unsigned char* readBinaryFileFromSPIFFS(const char* tag, const char* path, size_t* fileSize) {
+unsigned char* readBinaryFileFromSPIFFS(const char* path, size_t* fileSize) {
     File file = SPIFFS.open(path, "r");
     if (!file) {
-        logMessage(tag, (String("Failed to open file: ") + path).c_str());
+        logMessage("SPIFFS", (String("Failed to open file: ") + path).c_str());
         return nullptr;
     }
     *fileSize = file.size();

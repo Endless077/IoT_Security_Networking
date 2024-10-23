@@ -27,9 +27,9 @@ int serverPort = securityFlag ? 443 : 80;
 /* ********************************************************************************************* */
 
 void setup() {
-    //Init setup()
-    logMessage("BOOT", "Init setup()");
+    // Init setup()
     Serial.begin(115200);
+    logMessage("BOOT", "Init setup()");
 
     // Initialize SPIFFS
     if (!SPIFFS.begin(true)) {
@@ -38,42 +38,30 @@ void setup() {
     }
 
     // Read the secret key from the secret.txt file
-    File file = SPIFFS.open("/secret.txt", "r");
-    if (!file) {
-       logMessage("BOOT", "Failed to open secret.txt file.");
-    } else {
-        size_t keySize = file.size();
-        char* clientKey = new char[keySize + 1];
-        file.readBytes(clientKey, keySize);
-        clientKey[keySize] = '\0';
-        file.close();
-        logMessage("BOOT", (String("Secure response from server: ") + String(clientKey)).c_str());
+    clientKey = readFileFromSPIFFS("/secret.txt");
 
-        // Connect to the WiFi network
-        setupWiFi(ssid, password);
-
-        // Determine the server port based on the connection type
-        if (!securityFlag) {
-            // Non-secure connection
-            logMessage("BOOT", "Attempting non-secure connection...");
-            notSecureConnection(serverAddress, serverPort, clientKey);
-        } else {
-            // Secure connection
-            logMessage("BOOT", "Attempting secure connection...");
-            secureConnection(serverAddress, serverPort, clientKey);
-        }
-
-        // Free the memory allocated for the secret key
-        delete[] clientKey;
-    }
+    logMessage("BOOT", (String("Client key retrieved: ") + clientKey).c_str());
+    
+    // Connect to the WiFi network
+    setupWiFi(ssid, password);
 }
 
 void loop() {
-    // The client may reconnect after a delay
     // Wait 10 seconds before the next attempt
-    logMessage("BOOT", "loop()");
+    logMessage("BOOT", "Attempting to connect to the server...");;
+
+    // Determine the server port based on the connection type
+    if (!securityFlag) {
+        // Non-secure connection
+        logMessage("BOOT", "Attempting non-secure connection...");
+        notSecureConnection(serverAddress, serverPort, clientKey.c_str());
+    } else {
+        // Secure connection
+        logMessage("BOOT", "Attempting secure connection...");
+        secureConnection(serverAddress, serverPort, clientKey.c_str());
+    }
+
     delay(10000);
-    return;
 }
 
 /* ********************************************************************************************* */
