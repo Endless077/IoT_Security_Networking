@@ -2,6 +2,9 @@
 #include <WiFi.h>
 #include <SPIFFS.h>
 
+// HTTPServer Class
+#include <HTTPSServer.hpp>
+
 // Own libraries
 #include "server.h"
 #include "utils.h"
@@ -52,21 +55,23 @@ void loop() {
   resetService();
 
   // Set the server in Idle mode
-  if (securityFlag) {
-    // Server HTTPS
-    if (serverHTTPS != nullptr && serverHTTPS->isRunning()) {
-      serverHTTPS->loop();
+  if (!securityFlag) {
+    // Non-secure connection
+    logMessage("BOOT", "Attempting non-secure connection...");
+    if (serverHTTP != nullptr && serverHTTP->isRunning()) {
+        serverHTTP->loop();
     } else {
-      logMessage("BOOT", "Server HTTPS not available.");
+        logMessage("BOOT", "Server HTTP not available.");
     }
   } else {
-    // Server HTTP
-    if (serverHTTP != nullptr && serverHTTP->isRunning()) {
-      serverHTTP->loop();
+    // Secure connection
+    logMessage("BOOT", "Attempting secure connection...");
+    if (serverHTTPS != nullptr && serverHTTPS->isRunning()) {
+        serverHTTPS->loop();
     } else {
-      logMessage("BOOT", "Server HTTP not available.");
-      }
+        logMessage("BOOT", "Server HTTPS not available.");
     }
+  }
 
   // Add a small delay to avoid excessive CPU usage
   delay(1000);

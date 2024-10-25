@@ -3,9 +3,8 @@
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 #include <WiFiClientSecure.h>
-#include <SPIFFS.h>
 
-// Inlcudes for setting up the server
+// Setting up the server
 #include <HTTPSServer.hpp>
 
 // Define the certificate data for the server
@@ -17,6 +16,9 @@
 
 // Required for ResourceNodes definition
 #include <ResourceNode.hpp>
+
+// SPIFFS Manager
+#include <SPIFFS.h>
 
 // Own libraries
 #include "server.h"
@@ -133,10 +135,10 @@ void startServer(int port, bool securityFlag) {
 
         // Define a resource for the root path
         ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
-        serverHTTP->registerNode(node);
+        serverHTTPS->registerNode(node);
 
         // Start the server
-        serverHTTP->start();
+        serverHTTPS->start();
         logMessage(LOG, "Authenticated Server started at port 443 in the root path.");
 
         // Erase the memory after creating the certificate

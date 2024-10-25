@@ -1,8 +1,12 @@
 #ifndef WIFI_SERVER_H
 #define WIFI_SERVER_H
 
-#include <HTTPSServer.hpp>
-#include <Arduino.h>
+#include "utils.h"
+
+namespace httpsserver {
+    class HTTPServer;
+    class HTTPSServer;
+}
 
 extern httpsserver::HTTPServer *serverHTTP;
 extern httpsserver::HTTPSServer *serverHTTPS;

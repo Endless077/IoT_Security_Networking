@@ -9,9 +9,6 @@
 // Determine if the connection should be secure or not
 bool securityFlag = false;
 
-// Variable to hold the client secret key read from the file
-String clientKey = "";
-
 /* ********************************************************************************************* */
 
 // WiFi credentials
@@ -23,6 +20,9 @@ const char* serverAddress = "IP_ADDRESS";
 
 // Server port
 int serverPort = securityFlag ? 443 : 80;
+
+// Request
+HttpRequest request;
 
 /* ********************************************************************************************* */
 
@@ -38,27 +38,43 @@ void setup() {
     }
 
     // Read the secret key from the secret.txt file
-    clientKey = readFileFromSPIFFS("/secret.txt");
+    String clientKey = readFileFromSPIFFS("/secret.txt");
 
     logMessage("BOOT", (String("Client key retrieved: ") + clientKey).c_str());
-    
+
+    // Setup the body
+    static char bodyBuffer[256];
+    strncpy(bodyBuffer, clientKey.c_str(), sizeof(bodyBuffer) - 1);
+    bodyBuffer[sizeof(bodyBuffer) - 1] = '\0';
+
+    // HTTP Request
+    request = {
+        serverPort,             // port
+        securityFlag,           // useHttps
+        "POST",                 // method
+        "/",                    // path
+        serverAddress,          // host
+        "text/plain",           // contentType
+        bodyBuffer,             // body
+    };
+
     // Connect to the WiFi network
     setupWiFi(ssid, password);
 }
 
 void loop() {
     // Wait 10 seconds before the next attempt
-    logMessage("BOOT", "Attempting to connect to the server...");;
+    logMessage("BOOT", "Attempting to connect to the server...");
 
     // Determine the server port based on the connection type
     if (!securityFlag) {
         // Non-secure connection
         logMessage("BOOT", "Attempting non-secure connection...");
-        notSecureConnection(serverAddress, serverPort, clientKey.c_str());
+        notSecureConnection(request);
     } else {
         // Secure connection
         logMessage("BOOT", "Attempting secure connection...");
-        secureConnection(serverAddress, serverPort, clientKey.c_str());
+        secureConnection(request);
     }
 
     delay(10000);

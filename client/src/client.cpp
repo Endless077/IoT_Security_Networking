@@ -29,7 +29,7 @@ void setupWiFi(const char* ssid, const char* password) {
     logMessage(LOG, "Connected to WiFi.");
 }
 
-void secureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
+void secureConnection(const HttpRequest& request) {
     // Initialize SPIFFS (file system)
     if (!SPIFFS.begin(true)) {
         logMessage(LOG, "Failed to mount SPIFFS.");
@@ -76,12 +76,13 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
     logMessage(LOG, "Client private key loaded.");
 
     // Attempt to establish a secure connection
-    if (secureClient.connect(serverAddress, serverPort)) {
-        logMessage(LOG, (String("Secure connection established TO") + serverAddress).c_str());
-        secureClient.println(clientSecretKey);
+    if (secureClient.connect(request.host, request.port)) {
+        logMessage(LOG, (String("Secure connection established to:") + request.host).c_str());
+        secureClient.println(request.body);
         while (secureClient.connected()) {
             if (secureClient.available()) {
-                String response = secureClient.readStringUntil('\n');
+                String response = client.readStringUntil('\n');
+                response.trim();
                 logMessage(LOG, (String("Secure response from server: ") + response).c_str());
             }
         }
@@ -92,27 +93,42 @@ void secureConnection(const char* serverAddress, int serverPort, const char* cli
     }
 }
 
-void notSecureConnection(const char* serverAddress, int serverPort, const char* clientSecretKey) {
-    if (client.connect(serverAddress, serverPort)) {
-        logMessage(LOG, (String("Connected to server with IP: ") + serverAddress).c_str());
+void notSecureConnection(const HttpRequest& request) {
+    if (client.connect(request.host, request.port)) {
+        logMessage(LOG, (String("Connected to server with IP: ") + request.host).c_str());
 
         // Getting Request Metadata
-        int bodyLength = String(clientSecretKey).length();
-        String body = String(clientSecretKey);
+        int bodyLength = String(request.body).length();
+        
+        // Header Setup
+        char headerBuffer[256];
+        snprintf(headerBuffer, sizeof(headerBuffer),
+                 "%s %s HTTP/1.1\r\n"
+                 "Host: %s\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %d\r\n"
+                 "Connection: close\r\n\r\n",
+                 request.method,
+                 request.path,
+                 request.host,
+                 request.contentType,
+                 bodyLength);
 
-        String request = String("POST / HTTP/1.1\r\n") +
-                            "Host: " + serverAddress + "\r\n" +
-                            "Content-Type: text/plain\r\n" +
-                            "Content-Length: " + String(bodyLength) + "\r\n" +
-                            "Connection: close\r\n\r\n" +
-                            body;
-                
-        client.println(request);
+        // Send the Header
+        client.print(headerBuffer);
+
+        // Send the Body
+        if (bodyLength > 0) {
+            client.print(request.body);
+        }
 
         while (client.connected()) {
             if (client.available()) {
                 String response = client.readStringUntil('\n');
-                logMessage(LOG, (String("Response from server: ") + response).c_str());
+                response.trim();
+                if (response.length() > 0) {
+                    logMessage(LOG, (String("Response from server: ") + response).c_str());
+                }
             }
         }
         client.stop();

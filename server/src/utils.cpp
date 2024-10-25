@@ -58,11 +58,13 @@ void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HT
 
     // Print the URL of the request
     String url = String(req->getRequestString().c_str());
-    logMessage("Metadata", (String("URL: ") + url).c_str());
+    logMessage("Metadata", (String("PATH: ") + url).c_str());
 
     // Print the method of the request (GET, POST, etc.)
     String method = String(req->getMethod().c_str());
     logMessage("Metadata", (String("Method: ") + method).c_str());
+
+    logMessage("Metadata", "---");
 
     // Print the headers of the request
     logMessage("Metadata", "Headers:");
@@ -70,9 +72,12 @@ void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HT
     std::vector<httpsserver::HTTPHeader *> *headerList = headers->getAll();
 
     for (auto header : *headerList) {
-        logMessage("Metadata", (String(header->_name.c_str()) + ": " + String(header->_value.c_str())).c_str());
+        String message = "--" + String(header->_name.c_str()) + ": " + String(header->_value.c_str());
+        logMessage("Metadata", message.c_str());
     }
 
+    logMessage("Metadata", "---");
+    
     // Set the content length of the request
     contentLength = req->getContentLength();
     logMessage("Metadata", (String("Content-Length: ") + String(contentLength)).c_str());
