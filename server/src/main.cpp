@@ -10,13 +10,13 @@
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = false;
+bool securityFlag = true;
 
 /* ********************************************************************************************* */
 
 // WiFi credentials
-const char* ssid = "YOUR_SSID";
-const char* password = "YOUR_PASSWORD";
+const char* ssid = "";
+const char* password = "";
 
 // Server port
 int serverPort = securityFlag ? 443 : 80;

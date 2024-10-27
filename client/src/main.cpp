@@ -7,16 +7,16 @@
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = false;
+bool securityFlag = true;
 
 /* ********************************************************************************************* */
 
 // WiFi credentials
-const char* ssid = "YOUR_SSID";
-const char* password = "YOUR_PASSWORD";
+const char* ssid = "";
+const char* password = "";
 
 // Server IP address
-const char* serverAddress = "IP_ADDRESS";
+const char* serverAddress = "";
 
 // Server port
 int serverPort = securityFlag ? 443 : 80;
@@ -42,7 +42,7 @@ void setup() {
 
     logMessage("BOOT", (String("Client key retrieved: ") + clientKey).c_str());
 
-    // Setup the body
+    // Setup the client key
     static char bodyBuffer[256];
     strncpy(bodyBuffer, clientKey.c_str(), sizeof(bodyBuffer) - 1);
     bodyBuffer[sizeof(bodyBuffer) - 1] = '\0';
@@ -50,10 +50,9 @@ void setup() {
     // HTTP Request
     request = {
         serverPort,             // port
-        securityFlag,           // useHttps
+        serverAddress,          // host
         "POST",                 // method
         "/",                    // path
-        serverAddress,          // host
         "text/plain",           // contentType
         bodyBuffer,             // body
     };

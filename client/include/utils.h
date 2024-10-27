@@ -5,10 +5,9 @@
 
 struct HttpRequest {
     int port;
-    bool useHttps;
+    const char* host;
     const char* method;
     const char* path;
-    const char* host;
     const char* contentType;
     const char* body;
 };

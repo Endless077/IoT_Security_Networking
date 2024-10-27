@@ -78,30 +78,11 @@ void secureConnection(const HttpRequest& request) {
     // Attempt to establish a secure connection
     if (secureClient.connect(request.host, request.port)) {
         logMessage(LOG, (String("Secure connection established to:") + request.host).c_str());
-        secureClient.println(request.body);
-        while (secureClient.connected()) {
-            if (secureClient.available()) {
-                String response = client.readStringUntil('\n');
-                response.trim();
-                logMessage(LOG, (String("Secure response from server: ") + response).c_str());
-            }
-        }
-        secureClient.stop();
-        logMessage(LOG, "Secure connection closed.");
-    } else {
-        logMessage(LOG, "Secure connection failed.");
-    }
-}
-
-void notSecureConnection(const HttpRequest& request) {
-    if (client.connect(request.host, request.port)) {
-        logMessage(LOG, (String("Connected to server with IP: ") + request.host).c_str());
-
-        // Getting Request Metadata
-        int bodyLength = String(request.body).length();
         
         // Header Setup
         char headerBuffer[256];
+        int bodyLength = String(request.body).length();
+
         snprintf(headerBuffer, sizeof(headerBuffer),
                  "%s %s HTTP/1.1\r\n"
                  "Host: %s\r\n"
@@ -122,6 +103,50 @@ void notSecureConnection(const HttpRequest& request) {
             client.print(request.body);
         }
 
+        // Wait a server response
+        while (secureClient.connected()) {
+            if (secureClient.available()) {
+                String response = client.readStringUntil('\n');
+                response.trim();
+                logMessage(LOG, (String("Secure response from server: ") + response).c_str());
+            }
+        }
+        secureClient.stop();
+        logMessage(LOG, "Connection to Secure server closed.");
+    } else {
+        logMessage(LOG, "Connection to Secure server failed.");
+    }
+}
+
+void notSecureConnection(const HttpRequest& request) {
+    if (client.connect(request.host, request.port)) {
+        logMessage(LOG, (String("Unsecure connecton established to: ") + request.host).c_str());
+
+        // Header Setup
+        char headerBuffer[256];
+        int bodyLength = String(request.body).length();
+
+        snprintf(headerBuffer, sizeof(headerBuffer),
+                 "%s %s HTTP/1.1\r\n"
+                 "Host: %s\r\n"
+                 "Content-Type: %s\r\n"
+                 "Content-Length: %d\r\n"
+                 "Connection: close\r\n\r\n",
+                 request.method,
+                 request.path,
+                 request.host,
+                 request.contentType,
+                 bodyLength);
+
+        // Send the Header
+        client.print(headerBuffer);
+
+        // Send the Body
+        if (bodyLength > 0) {
+            client.print(request.body);
+        }
+
+        // Wait a server response
         while (client.connected()) {
             if (client.available()) {
                 String response = client.readStringUntil('\n');
@@ -132,9 +157,9 @@ void notSecureConnection(const HttpRequest& request) {
             }
         }
         client.stop();
-        logMessage(LOG, "Disconnected from server.");
+        logMessage(LOG, "Connection to unsecure server closed.");
     } else {
-        logMessage(LOG, "Connection to server failed.");
+        logMessage(LOG, "Connection to unsecure server failed.");
     }
 }
 

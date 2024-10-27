@@ -35,8 +35,21 @@ HTTPSServer *serverHTTPS = nullptr;
 
 /* ********************************************************************************************* */
 
-// Handle client requests function
-void handleClientRequest(HTTPRequest *req, HTTPResponse *res) {
+// Error 404 Handle Request
+void handle404(HTTPRequest * req, HTTPResponse * res) {
+  req->discardRequestBody();
+  res->setStatusCode(404);
+  res->setStatusText("Not Found");
+  res->setHeader("Content-Type", "text/html");
+  res->println("<!DOCTYPE html>");
+  res->println("<html>");
+  res->println("<head><title>Not Found</title></head>");
+  res->println("<body><h1>Error 404 - Not Found</h1><p>The requested resource was not found on this server.</p></body>");
+  res->println("</html>");
+}
+
+// Service Handle Request
+void handleRequest(HTTPRequest *req, HTTPResponse *res) {
     // Check if the connection is secure
     if (serverHTTPS != nullptr) {
         if (!req->isSecure()) {
@@ -134,8 +147,11 @@ void startServer(int port, bool securityFlag) {
         logMessage(LOG, "Secure server init complete.");
 
         // Define a resource for the root path
-        ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
-        serverHTTPS->registerNode(node);
+        ResourceNode * nodeRoot = new ResourceNode("/", "GET", &handleRequest);
+        ResourceNode * node404  = new ResourceNode("", "GET", &handle404);
+
+        serverHTTPS->registerNode(nodeRoot);
+        serverHTTPS->registerNode(node404);
 
         // Start the server
         serverHTTPS->start();
@@ -151,8 +167,11 @@ void startServer(int port, bool securityFlag) {
         logMessage(LOG, "Non-secure server init complete.");
 
         // Define a resource for the root path
-        ResourceNode *node = new ResourceNode("/", "POST", &handleClientRequest);
-        serverHTTP->registerNode(node);
+        ResourceNode * nodeRoot = new ResourceNode("/", "GET", &handleRequest);
+        ResourceNode * node404  = new ResourceNode("", "GET", &handle404);
+
+        serverHTTPS->registerNode(nodeRoot);
+        serverHTTPS->registerNode(node404);
 
         // Start the server
         serverHTTP->start();
