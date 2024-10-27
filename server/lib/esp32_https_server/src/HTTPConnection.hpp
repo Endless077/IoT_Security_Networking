@@ -41,6 +41,7 @@ public:
   virtual ~HTTPConnection();
 
   virtual int initialize(int serverSocketID, HTTPHeaders *defaultHeaders);
+  virtual void handleRequest(int status, const char* msg);
   virtual void closeConnection();
   virtual bool isSecure();
   virtual IPAddress getClientIP();

@@ -35,6 +35,7 @@ public:
   virtual ~HTTPSConnection();
 
   virtual int initialize(int serverSocketID, SSL_CTX * sslCtx, HTTPHeaders *defaultHeaders);
+  virtual void handleRequest(int status, const char* msg);
   virtual void closeConnection();
   virtual bool isSecure();
 

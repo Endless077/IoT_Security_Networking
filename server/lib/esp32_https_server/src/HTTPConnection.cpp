@@ -1,4 +1,5 @@
 #include "HTTPConnection.hpp"
+#include "server.h"
 
 namespace httpsserver {
 
@@ -57,6 +58,13 @@ int HTTPConnection::initialize(int serverSocketID, HTTPHeaders *defaultHeaders) 
   }
   // Error: The connection has already been established or could not be established
   return -1;
+}
+
+/**
+ * Handle the HTTP request with a status code and a messasge string.
+ */
+void HTTPConnection::handleRequest(int status, const char* msg) {
+  // Add-On: Run any request management function
 }
 
 /**

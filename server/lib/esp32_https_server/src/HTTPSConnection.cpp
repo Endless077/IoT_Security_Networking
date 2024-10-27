@@ -1,4 +1,5 @@
 #include "HTTPSConnection.hpp"
+#include "server.h"
 
 namespace httpsserver {
 
@@ -40,19 +41,24 @@ int HTTPSConnection::initialize(int serverSocketID, SSL_CTX * sslCtx, HTTPHeader
           // Perform the handshake
           success = SSL_accept(_ssl);
           if (success) {
+            HTTPSConnection::handleRequest(true, "Successful SSL Handshake. Connection established.");
             return resSocket;
           } else {
             HTTPS_LOGE("SSL_accept failed. Aborting handshake. FID=%d", resSocket);
+            HTTPSConnection::handleRequest(false, "Aborting handshake, SSL_accept failed.");
           }
         } else {
           HTTPS_LOGE("SSL_set_fd failed. Aborting handshake. FID=%d", resSocket);
+          HTTPSConnection::handleRequest(false, "Aborting handshake, SSL_accept failed.");
         }
       } else {
         HTTPS_LOGE("SSL_new failed. Aborting handshake. FID=%d", resSocket);
+        HTTPSConnection::handleRequest(false, "Aborting handshake, SSL_accept failed.");
       }
 
     } else {
       HTTPS_LOGE("Could not accept() new connection. FID=%d", resSocket);
+      HTTPSConnection::handleRequest(false, "Aborting handshake, SSL_accept failed.");
     }
 
     _connectionState = STATE_ERROR;
@@ -66,6 +72,12 @@ int HTTPSConnection::initialize(int serverSocketID, SSL_CTX * sslCtx, HTTPHeader
   return -1;
 }
 
+/**
+ * Handle the HTTPS request with a status code and a messasge string.
+ */
+void HTTPSConnection::handleRequest(int status, const char* msg) {
+  // Add-On: Run any request management function
+}
 
 void HTTPSConnection::closeConnection() {
 

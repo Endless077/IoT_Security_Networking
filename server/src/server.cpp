@@ -35,7 +35,12 @@ HTTPSServer *serverHTTPS = nullptr;
 
 /* ********************************************************************************************* */
 
-// Error 404 Handle Request
+// Error SSL/TLS Handshake
+void handleHandshake(int status, const char* msg) {
+    return;
+}
+
+// HTTP Error Code: 404 (Not Found)
 void handle404(HTTPRequest * req, HTTPResponse * res) {
   req->discardRequestBody();
   res->setStatusCode(404);
@@ -48,22 +53,16 @@ void handle404(HTTPRequest * req, HTTPResponse * res) {
   res->println("</html>");
 }
 
+
 // Service Handle Request
 void handleRequest(HTTPRequest *req, HTTPResponse *res) {
-    // Check if the connection is secure
-    if (serverHTTPS != nullptr) {
-        if (!req->isSecure()) {
-            // Turn on the red LED for a not-secure or suspicious connection
-            logMessage(LOG, "Not-secure connection detected, alarm started.");
-            setLedStatus(redLED, true);
-            return;
-        } else {
-            // Turn off the red LED if the connection is secure
-            setLedStatus(redLED, false);
-        }
+    // Check the server status connection
+    if (!req->isSecure()) {
+        // Not-secure or suspicious server connection detected
+        logMessage(LOG, "Not-secure connection detected, be careful.");
     } else {
-        // Log message indicating a HTTP Unsafe connection
-        logMessage(LOG, "Not-secure connection started via HTTP.");
+        // Secure server connection detected
+        logMessage(LOG, "Secure connection detected, you are protected.");
     }
 
     // Init size and content of the request
@@ -131,7 +130,7 @@ void startServer(int port, bool securityFlag) {
     if (securityFlag) {
         // Load server certificate and key in DER format from SPIFFS
         size_t certSize, keySize;
-        unsigned char* serverCert = readBinaryFileFromSPIFFS("/server_cert.der", &certSize);
+        unsigned char* serverCert = readBinaryFileFromSPIFFS("/server_crt.der", &certSize);
         unsigned char* serverKey = readBinaryFileFromSPIFFS("/server_key.der", &keySize);
 
         if (!serverCert || !serverKey) {

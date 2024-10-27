@@ -2,7 +2,8 @@
 #include <WiFi.h>
 #include <SPIFFS.h>
 
-// HTTPServer Class
+// HTTP/HTTPS Server Libraries
+#include <HTTPServer.hpp>
 #include <HTTPSServer.hpp>
 
 // Own libraries
@@ -15,8 +16,8 @@ bool securityFlag = true;
 /* ********************************************************************************************* */
 
 // WiFi credentials
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "Home WiFi - Petriccione";
+const char* password = "AgSp9844HUB4498SpAg";
 
 // Server port
 int serverPort = securityFlag ? 443 : 80;
@@ -59,17 +60,17 @@ void loop() {
     // Non-secure connection
     logMessage("BOOT", "Attempting non-secure connection...");
     if (serverHTTP != nullptr && serverHTTP->isRunning()) {
-        serverHTTP->loop();
+      serverHTTP->loop();
     } else {
-        logMessage("BOOT", "Server HTTP not available.");
+      logMessage("BOOT", "Server HTTP not available.");
     }
   } else {
     // Secure connection
     logMessage("BOOT", "Attempting secure connection...");
     if (serverHTTPS != nullptr && serverHTTPS->isRunning()) {
-        serverHTTPS->loop();
+      serverHTTPS->loop();
     } else {
-        logMessage("BOOT", "Server HTTPS not available.");
+      logMessage("BOOT", "Server HTTPS not available.");
     }
   }
 
