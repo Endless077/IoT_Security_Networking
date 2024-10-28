@@ -32,15 +32,23 @@ String readFileFromSPIFFS(const char* path) {
     return content;
 }
 
-unsigned char* readBinaryFileFromSPIFFS(const char* path, size_t* fileSize) {
+unsigned char* readBinaryFileFromSPIFFS(const char* path, uint16_t &length) {
     File file = SPIFFS.open(path, "r");
     if (!file) {
         logMessage("SPIFFS", (String("Failed to open file: ") + path).c_str());
         return nullptr;
     }
-    *fileSize = file.size();
-    unsigned char* buffer = new unsigned char[*fileSize];
-    file.read(buffer, *fileSize);
+    
+    length = file.size();
+    unsigned char *buffer = new unsigned char[length];
+
+    if (buffer == nullptr) {
+        Serial.println("Error during memory allocation.");
+        file.close();
+        return nullptr;
+    }
+    
+    file.read(buffer, length);
     file.close();
     return buffer;
 }

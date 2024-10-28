@@ -1,86 +1,70 @@
 #!/bin/bash
 
 ###################################################################################################
+# Check if OpenSSL is installed
+if ! command -v openssl &> /dev/null; then
+    echo "OpenSSL is not installed. Please install it and try again."
+    exit 1
+fi
 
-# Function to check if OpenSSL is installed
-check_openssl_installed() {
-    if ! command -v openssl &> /dev/null; then
-        echo "OpenSSL is not installed. Please install it and try again."
-        exit 1
-    fi
-}
-
-# Function to create directories if they don't exist
-create_directories() {
-    mkdir -p ./client/data
-    mkdir -p ./server/data
-    mkdir -p ./server/data/certs
-}
+# Create necessary directories for server and client
+mkdir -p ./client/data
+mkdir -p ./server/data
+mkdir -p ./server/data/certs
 
 ###################################################################################################
+# Create Certificate Authority (CA)
 
-# Function to create the Certificate Authority (CA)
-create_ca() {
-    echo "Creating CA certificate..."
-    openssl genpkey -algorithm RSA -out ca.key -pkeyopt rsa_keygen_bits:2048
-    openssl req -new -x509 -key ca.key -out ca.crt -days 365 -subj "/C=IT/ST=State/L=City/O=MyCompany/OU=IT Department/CN=MyCA"
-}
-
-# Function to create the server certificate and its DER versions
-create_server_cert() {
-    echo "Creating server certificate..."
-    openssl genpkey -algorithm RSA -out server.key -pkeyopt rsa_keygen_bits:2048
-    openssl req -new -key server.key -out server.csr -subj "/C=IT/ST=State/L=City/O=MyCompany/OU=IT Department/CN=Server"
-    openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365
-
-    # Convert server certificate and key to DER format
-    openssl x509 -in server.crt -outform der -out server.crt.der
-    openssl rsa -in server.key -outform der -out server.key.der
-}
-
-# Function to create the client certificate
-create_client_cert() {
-    echo "Creating client certificate..."
-    openssl genpkey -algorithm RSA -out client.key -pkeyopt rsa_keygen_bits:2048
-    openssl req -new -key client.key -out client.csr -subj "/C=IT/ST=State/L=City/O=MyCompany/OU=IT Department/CN=Client"
-    openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days 365
-}
-
-# Function to move certificates to the correct directories and clean up
-transfer_certs() {
-    echo "Moving certificates to the correct directories..."
-
-    # Move client certificates to ./client/data/
-    cp client.crt client.key ./client/data/
-
-    # Move server certificates in PEM format to ./server/data/certs/
-    cp server.crt server.key ./server/data/certs/
-
-    # Move server certificates in DER format to ./server/data/
-    cp server.crt.der server.key.der ./server/data/
-
-    # Move CA certificates to both client and server directories
-    cp ca.crt ca.key ./client/data/
-    cp ca.crt ca.key ./server/data/
-
-    # Clean up: Remove all the no longer needed files
-    rm -f *.crt *.csr *.key
-}
+echo "Creating CA certificate..."
+openssl genpkey -algorithm RSA -out ca_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl req -x509 -new -key ca_key.pem -sha256 -days 3650 -out ca_cert.pem -subj "/C=IT/ST=Campania/L=Napoli/O=IoTSecurity/OU=Security/CN=ESP32CA"
 
 ###################################################################################################
+# Create Server Certificate
 
-# Main script execution
+echo "Creating server certificate..."
+openssl genpkey -algorithm RSA -out server_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl req -new -key server_key.pem -out server_csr.pem -subj "/C=IT/ST=Campania/L=Naples/O=IoTSec/OU=Security/CN=esp32server.local"
+openssl x509 -req -in server_csr.pem -CA ca_cert.pem -CAkey ca_key.pem -CAcreateserial -out server_cert.pem -days 3650 -sha256
 
-# Setup environment
-check_openssl_installed
-create_directories
+# Convert server certificate and key to DER format
+openssl x509 -inform PEM -outform DER -in server_cert.pem -out server_cert.der
+openssl rsa -inform PEM -outform DER -in server_key.pem -out server_key.der
 
-# Certs Generation
-create_ca
-create_server_cert
-create_client_cert
+###################################################################################################
+# Create Client Certificate (for mutual authentication)
 
-# Transfer Certs
-transfer_certs
+echo "Creating client certificate..."
+openssl genpkey -algorithm RSA -out client_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl req -new -key client_key.pem -out client_csr.pem -subj "/C=IT/ST=Campania/L=Naples/O=IoTSec/OU=Security/CN=esp32client.local"
+openssl x509 -req -in client_csr.pem -CA ca_cert.pem -CAkey ca_key.pem -CAcreateserial -out client_cert.pem -days 3650 -sha256
+
+# Convert client certificate and key to DER format
+openssl x509 -inform PEM -outform DER -in client_cert.pem -out client_cert.der
+openssl rsa -inform PEM -outform DER -in client_key.pem -out client_key.der
+
+###################################################################################################
+# Move files to appropriate directories
+
+echo "Moving certificates and keys to the correct directories..."
+
+# Server certificates and keys
+cp server_cert.pem server_key.pem ./server/data/certs/
+cp server_cert.der server_key.der ./server/data/
+cp ca_cert.pem ca_cert.der ./server/data/
+
+# Client certificates and keys
+cp client_cert.pem client_key.pem ./client/data/
+cp client_cert.der client_key.der ./client/data/
+cp ca_cert.pem ca_cert.der ./client/data/
+
+###################################################################################################
+# Clean up temporary files
+
+echo "Cleaning up temporary files..."
+rm -f *.srl *.csr
+
+###################################################################################################
+# Done
 
 echo "Certificate generation and setup complete."

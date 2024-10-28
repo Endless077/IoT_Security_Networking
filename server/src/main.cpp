@@ -15,11 +15,11 @@ bool securityFlag = true;
 
 /* ********************************************************************************************* */
 
-// WiFi credentials
-const char* ssid = "Home WiFi - Petriccione";
-const char* password = "AgSp9844HUB4498SpAg";
+// WiFi Credentials
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
 
-// Server port
+// Server Port
 int serverPort = securityFlag ? 443 : 80;
 
 /* ********************************************************************************************* */
@@ -63,6 +63,7 @@ void loop() {
       serverHTTP->loop();
     } else {
       logMessage("BOOT", "Server HTTP not available.");
+      ESP.restart();
     }
   } else {
     // Secure connection
@@ -71,6 +72,7 @@ void loop() {
       serverHTTPS->loop();
     } else {
       logMessage("BOOT", "Server HTTPS not available.");
+      ESP.restart();
     }
   }
 

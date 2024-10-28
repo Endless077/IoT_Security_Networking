@@ -1,4 +1,5 @@
 // Espressif - ESP32 Client (main.cpp)
+#include <ESPmDNS.h>
 #include <WiFi.h>
 #include <SPIFFS.h>
 
@@ -11,15 +12,13 @@ bool securityFlag = true;
 
 /* ********************************************************************************************* */
 
-// WiFi credentials
-const char* ssid = "";
-const char* password = "";
+// WiFi Credentials
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
 
-// Server IP address
-const char* serverAddress = "";
-
-// Server port
+// Server credentials
 int serverPort = securityFlag ? 443 : 80;
+const char* serverAddress = "esp32server.local";
 
 // Request
 HttpRequest request;
@@ -31,22 +30,25 @@ void setup() {
     Serial.begin(115200);
     logMessage("BOOT", "Init setup()");
 
-    // Initialize SPIFFS
+    // Connect to the WiFi network
+    setupWiFi(ssid, password);
+
+    // SPIFFS File System Init
     if (!SPIFFS.begin(true)) {
-        logMessage("BOOT", "An error occurred while mounting SPIFFS");
-        return;
+        logMessage("BOOT", "An error occurred while mounting SPIFFS.");
+        ESP.restart();
     }
 
     // Read the secret key from the secret.txt file
     String clientKey = readFileFromSPIFFS("/secret.txt");
 
     logMessage("BOOT", (String("Client key retrieved: ") + clientKey).c_str());
-
+    
     // Setup the client key
     static char bodyBuffer[256];
     strncpy(bodyBuffer, clientKey.c_str(), sizeof(bodyBuffer) - 1);
     bodyBuffer[sizeof(bodyBuffer) - 1] = '\0';
-
+    
     // HTTP Request
     request = {
         serverPort,             // port
@@ -57,8 +59,6 @@ void setup() {
         bodyBuffer,             // body
     };
 
-    // Connect to the WiFi network
-    setupWiFi(ssid, password);
 }
 
 void loop() {

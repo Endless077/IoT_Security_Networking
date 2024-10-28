@@ -1,4 +1,5 @@
-// Espressif - ESP32 Client (client.cpp)
+// Espressif - ESP32 Client (server.cpp)
+#include <ESPmDNS.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WiFiServer.h>
@@ -37,7 +38,9 @@ HTTPSServer *serverHTTPS = nullptr;
 
 // Error SSL/TLS Handshake
 void handleHandshake(int status, const char* msg) {
-    return;
+    // Logging the Handshake result and do something
+    if (!status) setLedStatus(redLED, HIGH);
+    logMessage(LOG, msg);
 }
 
 // HTTP Error Code: 404 (Not Found)
@@ -52,7 +55,6 @@ void handle404(HTTPRequest * req, HTTPResponse * res) {
   res->println("<body><h1>Error 404 - Not Found</h1><p>The requested resource was not found on this server.</p></body>");
   res->println("</html>");
 }
-
 
 // Service Handle Request
 void handleRequest(HTTPRequest *req, HTTPResponse *res) {
@@ -82,7 +84,7 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
             logMessage(LOG, "Failed to open secret.txt");
             res->setStatusCode(500);
             res->println("Error reading server key");
-            setLedStatus(redLED, true);
+            setLedStatus(redLED, HIGH);
             return;
         }
         
@@ -91,12 +93,12 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
             logMessage(LOG, "Client key matches.");
             res->setStatusCode(200);
             res->println("Success, the client key and the stored key matches.");
-            setLedStatus(greenLED, true);
+            setLedStatus(greenLED, HIGH);
         } else {
             logMessage(LOG, "Client key does not match.");
             res->setStatusCode(401);
             res->println("Failure, the client key and the stored key does not match.");
-            setLedStatus(redLED, true);
+            setLedStatus(redLED, HIGH);
         }
     } else {
         res->setStatusCode(400);
@@ -105,19 +107,6 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
 }
 
 /* ********************************************************************************************* */
-
-void setupWiFi(const char* ssid, const char* password) {
-    WiFi.begin(ssid, password);
-    logMessage(LOG, "Connecting to WiFi");
-    
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        logMessage(LOG, ".");
-    }
-
-    logMessage(LOG, (String("IP Address: ") + WiFi.localIP().toString()).c_str());
-    logMessage(LOG, "Connected to WiFi.");
-}
 
 void startServer(int port, bool securityFlag) {
     // Find and Mount SPIFFS
@@ -129,25 +118,26 @@ void startServer(int port, bool securityFlag) {
     // Check if secuirty should be enabled
     if (securityFlag) {
         // Load server certificate and key in DER format from SPIFFS
-        size_t certSize, keySize;
-        unsigned char* serverCert = readBinaryFileFromSPIFFS("/server_crt.der", &certSize);
-        unsigned char* serverKey = readBinaryFileFromSPIFFS("/server_key.der", &keySize);
+        uint16_t certSize, keySize;
+        
+        unsigned char *certBuffer = readBinaryFileFromSPIFFS("/server_cert.der", certSize);
+        unsigned char *keyBuffer = readBinaryFileFromSPIFFS("/server_key.der", keySize);
 
-        if (!serverCert || !serverKey) {
+        if (certBuffer == nullptr || keyBuffer == nullptr) {
             logMessage(LOG, "Error loading certificates or private key.");
             return;
         }
 
         // Create SSL certificate object using DER format
-        SSLCert *cert = new SSLCert(serverCert, certSize, serverKey, keySize);
+        SSLCert cert(certBuffer, certSize, keyBuffer, keySize);
 
         // Create HTTPS server using the SSL certificate
-        serverHTTPS = new HTTPSServer(cert, port);
+        serverHTTPS = new HTTPSServer(&cert, port);
         logMessage(LOG, "Secure server init complete.");
 
         // Define a resource for the root path
-        ResourceNode * nodeRoot = new ResourceNode("/", "GET", &handleRequest);
-        ResourceNode * node404  = new ResourceNode("", "GET", &handle404);
+        ResourceNode * nodeRoot = new ResourceNode("/", "POST", &handleRequest);
+        ResourceNode * node404  = new ResourceNode("", "POST", &handle404);
 
         serverHTTPS->registerNode(nodeRoot);
         serverHTTPS->registerNode(node404);
@@ -156,26 +146,65 @@ void startServer(int port, bool securityFlag) {
         serverHTTPS->start();
         logMessage(LOG, "Authenticated Server started at port 443 in the root path.");
 
-        // Erase the memory after creating the certificate
-        delete[] serverCert;
-        delete[] serverKey;
-
     } else {
         // Non-secure server: do not load certificates
         serverHTTP = new HTTPServer(port);
         logMessage(LOG, "Non-secure server init complete.");
 
         // Define a resource for the root path
-        ResourceNode * nodeRoot = new ResourceNode("/", "GET", &handleRequest);
-        ResourceNode * node404  = new ResourceNode("", "GET", &handle404);
+        ResourceNode * nodeRoot = new ResourceNode("/", "POST", &handleRequest);
+        ResourceNode * node404  = new ResourceNode("", "POST", &handle404);
 
-        serverHTTPS->registerNode(nodeRoot);
-        serverHTTPS->registerNode(node404);
+        serverHTTP->registerNode(nodeRoot);
+        serverHTTP->registerNode(node404);
 
         // Start the server
         serverHTTP->start();
         logMessage(LOG, "Unauthenticated Server started at port 80 in the root path.");
     }
+}
+
+void setupWiFi(const char* ssid, const char* password) {
+    // Check a WiFi connection with given SSID and Password
+    WiFi.begin(ssid, password);
+    logMessage(LOG, "Connecting to WiFi...");
+    
+    // Start the WiFi connection
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        logMessage(LOG, ".");
+    }
+
+    // Get the IP Address of the server
+    logMessage(LOG, (String("IP Address: ") + WiFi.localIP().toString()).c_str());
+    logMessage(LOG, "Connected to WiFi.");
+
+    // Start mDNS
+    if (!MDNS.begin("esp32server")) {
+        logMessage(LOG, "Error setting up MDNS responder.");
+        while (1) {
+            delay(1000);
+        }
+    }
+    logMessage(LOG, "mDNS responder started.");
+
+    // Configure time with NTP servers
+    configTime(0, 3600, "pool.ntp.org", "time.nist.gov");
+
+    // Wait until time is synchronized
+    logMessage(LOG, "Waiting for time synchronization...");
+    struct tm timeinfo;
+    while (!getLocalTime(&timeinfo)) {
+        Serial.print(".");
+        delay(1000);
+    }
+
+    logMessage(LOG, "Time synchronized.");
+    
+    // Stamp the current time
+    char timeString[64];
+    strftime(timeString, sizeof(timeString), "Current time: %A, %B %d %Y %H:%M:%S", &timeinfo);
+    logMessage(LOG, timeString);
 }
 
 /* ********************************************************************************************* */
