@@ -58,7 +58,7 @@ void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HT
 
     // Print the URL of the request
     String url = String(req->getRequestString().c_str());
-    logMessage("Metadata", (String("PATH: ") + url).c_str());
+    logMessage("Metadata", (String("Resource: ") + url).c_str());
 
     // Print the method of the request (GET, POST, etc.)
     String method = String(req->getMethod().c_str());

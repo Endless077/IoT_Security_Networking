@@ -51,12 +51,12 @@ void setup() {
     
     // HTTP Request
     request = {
-        serverPort,             // port
-        serverAddress,          // host
-        "POST",                 // method
-        "/",                    // path
-        "text/plain",           // contentType
-        bodyBuffer,             // body
+        serverPort,     // port
+        serverAddress,  // host
+        "POST",         // method
+        "/",            // path
+        "text/plain",   // contentType
+        bodyBuffer,     // body
     };
 
 }

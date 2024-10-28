@@ -1,17 +1,19 @@
 // Espressif - ESP32 Client (main.cpp)
 #include <WiFi.h>
-#include <SPIFFS.h>
 
-// HTTP/HTTPS Server Libraries
+// Server HTTP/HTTPS Libraries
 #include <HTTPServer.hpp>
 #include <HTTPSServer.hpp>
+
+// SPIFFS Manager
+#include <SPIFFS.h>
 
 // Own libraries
 #include "server.h"
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = true;
+bool securityFlag = false;
 
 /* ********************************************************************************************* */
 
@@ -30,7 +32,7 @@ void setup() {
     Serial.begin(115200);
 
     // Setup LED pins
-    logMessage("BOOT", "Setup the digital Pins");
+    logMessage("BOOT", "Setup the digital pins...");
     pinMode(2, OUTPUT);
     pinMode(13, OUTPUT);
     digitalWrite(2, LOW);
@@ -39,15 +41,15 @@ void setup() {
     // Initialize SPIFFS
     if (!SPIFFS.begin(true)) {
       logMessage("BOOT", "Failed to mount SPIFFS.");
-      return;
+      ESP.restart();
     }
 
     // Connect to WiFi
-    logMessage("BOOT", "Setup WiFi Connection.");
+    logMessage("BOOT", "Setup WiFi Connection...");
     setupWiFi(ssid, password);
 
     // Start the server (secure or non-secure based on the flag)
-    logMessage("BOOT", "Setup Server Boot.");
+    logMessage("BOOT", "Setup Server Boot...");
     startServer(serverPort, securityFlag);
 }
 

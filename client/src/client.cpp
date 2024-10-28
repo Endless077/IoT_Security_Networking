@@ -1,7 +1,12 @@
 // Espressif - ESP32 Client (client.cpp)
-#include <ESPmDNS.h>
 #include <WiFi.h>
+#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
+
+// mDNS Manager
+#include <ESPmDNS.h>
+
+// SPIFFS Manager
 #include <SPIFFS.h>
 
 // Own libraries
@@ -28,22 +33,25 @@ void secureConnection(const HttpRequest& request) {
     String caCert = readFileFromSPIFFS("/ca_cert.pem");
 
     // Set the CA certificate
+    logMessage(LOG, "Loading CA Certificate...");
     secureClient.setCACert(caCert.c_str());
-    logMessage(LOG, "CA certificate loaded");
+    logMessage(LOG, "CA Certificate loaded.");
 
     // Load the client certificate manually from SPIFFS
     String clientCert = readFileFromSPIFFS("/client_cert.pem");
 
-    // Set the client certificate
-    //secureClient.setCertificate(clientCert.c_str());
-    logMessage(LOG, "Client certificate loaded.");
-
+    // Set the client certificate (facoltative)
+    logMessage(LOG, "Loading Client Certificate...");
+    secureClient.setCertificate(clientCert.c_str());
+    logMessage(LOG, "Client Certificate loaded.");
+    
     // Load the client key manually from SPIFFS
     String clientKey = readFileFromSPIFFS("/client_key.pem");
 
-    // Set the client private key
-    //secureClient.setPrivateKey(clientKey.c_str());
-    logMessage(LOG, "Client private key loaded.");
+    // Set the client private key (facoltative)
+    logMessage(LOG, "Loading Client Private Key...");
+    secureClient.setPrivateKey(clientKey.c_str());
+    logMessage(LOG, "Client Private Key loaded.");
 
     // Attempt to establish a secure connection
     if (secureClient.connect(request.host, request.port)) {
@@ -89,6 +97,7 @@ void secureConnection(const HttpRequest& request) {
 }
 
 void notSecureConnection(const HttpRequest& request) {
+    // Attempt to establish a not secure connection
     if (client.connect(request.host, request.port)) {
         logMessage(LOG, (String("Unsecure connecton established to: ") + request.host).c_str());
 
@@ -134,9 +143,9 @@ void notSecureConnection(const HttpRequest& request) {
 }
 
 void setupWiFi(const char* ssid, const char* password) {
-    // Check a WiFi connection with given SSID and Password
+    // Start a WiFi connection with given SSID and Password
     WiFi.begin(ssid, password);
-    logMessage(LOG, "Connecting to WiFi");
+    logMessage(LOG, "Connecting to WiFi...");
     
     // Start the WiFi connection
     while (WiFi.status() != WL_CONNECTED) {
@@ -155,6 +164,7 @@ void setupWiFi(const char* ssid, const char* password) {
             delay(1000);
         }
     }
+    
     logMessage(LOG, "mDNS responder started.");
 
     // Configure time with NTP servers

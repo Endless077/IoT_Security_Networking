@@ -1,9 +1,5 @@
 // Espressif - ESP32 Client (server.cpp)
-#include <ESPmDNS.h>
 #include <WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiServer.h>
-#include <WiFiClientSecure.h>
 
 // Setting up the server
 #include <HTTPSServer.hpp>
@@ -17,6 +13,9 @@
 
 // Required for ResourceNodes definition
 #include <ResourceNode.hpp>
+
+// mDNS Manager
+#include <ESPmDNS.h>
 
 // SPIFFS Manager
 #include <SPIFFS.h>
@@ -83,7 +82,7 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
         if (storedKey.isEmpty()) {
             logMessage(LOG, "Failed to open secret.txt");
             res->setStatusCode(500);
-            res->println("Error reading server key");
+            res->println("Error reading server key.");
             setLedStatus(redLED, HIGH);
             return;
         }
@@ -109,10 +108,10 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
 /* ********************************************************************************************* */
 
 void startServer(int port, bool securityFlag) {
-    // Find and Mount SPIFFS
+    // Initialize SPIFFS (file system)
     if (!SPIFFS.begin(true)) {
         logMessage(LOG, "Failed to mount SPIFFS.");
-        return;
+        ESP.restart();
     }
 
     // Check if secuirty should be enabled
@@ -125,7 +124,7 @@ void startServer(int port, bool securityFlag) {
 
         if (certBuffer == nullptr || keyBuffer == nullptr) {
             logMessage(LOG, "Error loading certificates or private key.");
-            return;
+            ESP.restart();
         }
 
         // Create SSL certificate object using DER format
@@ -165,7 +164,7 @@ void startServer(int port, bool securityFlag) {
 }
 
 void setupWiFi(const char* ssid, const char* password) {
-    // Check a WiFi connection with given SSID and Password
+    // Start a WiFi connection with given SSID and Password
     WiFi.begin(ssid, password);
     logMessage(LOG, "Connecting to WiFi...");
     
@@ -182,10 +181,9 @@ void setupWiFi(const char* ssid, const char* password) {
     // Start mDNS
     if (!MDNS.begin("esp32server")) {
         logMessage(LOG, "Error setting up MDNS responder.");
-        while (1) {
-            delay(1000);
-        }
+        ESP.restart();
     }
+    
     logMessage(LOG, "mDNS responder started.");
 
     // Configure time with NTP servers
