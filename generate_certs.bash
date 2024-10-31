@@ -8,8 +8,7 @@ if ! command -v openssl &> /dev/null; then
 fi
 
 # Create necessary directories for server and client
-mkdir -p ./client/data
-mkdir -p ./server/data
+mkdir -p ./client/data/certs
 mkdir -p ./server/data/certs
 
 ###################################################################################################
@@ -18,6 +17,10 @@ mkdir -p ./server/data/certs
 echo "Creating CA certificate..."
 openssl genpkey -algorithm RSA -out ca_key.pem -pkeyopt rsa_keygen_bits:2048
 openssl req -x509 -new -key ca_key.pem -sha256 -days 3650 -out ca_cert.pem -subj "/C=IT/ST=Campania/L=Napoli/O=IoTSecurity/OU=Security/CN=ESP32CA"
+
+# Convert Certification Authority certificate and ket to DER format
+openssl x509 -inform PEM -outform DER -in ca_cert.pem -out ca_cert.der
+openssl rsa -inform PEM -outform DER -in ca_key.pem -out ca_key.der
 
 ###################################################################################################
 # Create Server Certificate
@@ -32,7 +35,7 @@ openssl x509 -inform PEM -outform DER -in server_cert.pem -out server_cert.der
 openssl rsa -inform PEM -outform DER -in server_key.pem -out server_key.der
 
 ###################################################################################################
-# Create Client Certificate (for mutual authentication)
+# Create Client Certificate
 
 echo "Creating client certificate..."
 openssl genpkey -algorithm RSA -out client_key.pem -pkeyopt rsa_keygen_bits:2048
@@ -48,23 +51,43 @@ openssl rsa -inform PEM -outform DER -in client_key.pem -out client_key.der
 
 echo "Moving certificates and keys to the correct directories..."
 
+# Client certificates and keys
+cp client_cert.pem client_key.pem ./client/data/certs
+cp client_cert.der client_key.der ./client/data/
+
 # Server certificates and keys
 cp server_cert.pem server_key.pem ./server/data/certs/
 cp server_cert.der server_key.der ./server/data/
-cp ca_cert.pem ca_cert.der ./server/data/
 
-# Client certificates and keys
-cp client_cert.pem client_key.pem ./client/data/
-cp client_cert.der client_key.der ./client/data/
-cp ca_cert.pem ca_cert.der ./client/data/
+# CA certificate and key
+cp ca_cert.pem ./client/data/certs/
+cp ca_cert.der ./client/data/
+
+cp ca_cert.pem ./server/data/certs/
+cp ca_cert.der ./server/data/
+
+echo "Moving certificates and keys to the correct directories complete."
 
 ###################################################################################################
 # Clean up temporary files
 
-echo "Cleaning up temporary files..."
+echo "Cleaning up temporary files and organizing backups..."
+
+# Create backup directories if they don't exist
+mkdir -p backup/certs
+
+# Move .pem files to backup/certs
+mv *.pem backup/certs/
+
+# Move .der files to backup
+mv *.der backup/
+
+# Remove only temporary files
 rm -f *.srl *.csr
+
+echo "Cleaning up temporary files and organizing backups complete."
 
 ###################################################################################################
 # Done
 
-echo "Certificate generation and setup complete."
+echo "Done."

@@ -1,4 +1,4 @@
-// Espressif - ESP32 Client (main.cpp)
+// Espressif - ESP32 Server (main.cpp)
 #include <WiFi.h>
 
 // Server HTTP/HTTPS Libraries
