@@ -39,7 +39,6 @@ int HTTPSConnection::initialize(int serverSocketID, SSL_CTX * sslCtx, HTTPHeader
         // Bind SSL to the socket
         int success = SSL_set_fd(_ssl, resSocket);
         if (success) {
-
           // Perform the handshake
           success = SSL_accept(_ssl);
           if (success) {

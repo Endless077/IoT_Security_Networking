@@ -2,6 +2,7 @@
 #include <WiFi.h>
 
 // Setting up the server
+#include <HTTPServer.hpp>
 #include <HTTPSServer.hpp>
 
 // Define the certificate data for the server
@@ -107,6 +108,41 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
 
 /* ********************************************************************************************* */
 
+void shutdown() {
+    // Logging the shutdown
+    logMessage(LOG, "Shutting down server...");
+
+    // Stop the HTTP Server
+    if (serverHTTP != nullptr) {
+        serverHTTP->stop();
+        delete serverHTTP;
+        serverHTTP = nullptr;
+        logMessage(LOG, "HTTP server stopped.");
+    }
+    
+    // Stop the HTTP Server
+    if (serverHTTPS != nullptr) {
+        serverHTTPS->stop();
+        delete serverHTTPS;
+        serverHTTPS = nullptr;
+        logMessage(LOG, "HTTPS server stopped.");
+    }
+    
+    // Reset the Service
+    resetService();
+    
+    // WiFi Disconnect
+    WiFi.disconnect(true, true);
+
+    // SPIFFS Service Stop
+    SPIFFS.end();
+
+    // mDNS Service Stop
+    MDNS.end();
+    
+    logMessage(LOG, "Server shutdown complete.");
+}
+
 void startServer(int port, bool securityFlag) {
     // Initialize SPIFFS (file system)
     if (!SPIFFS.begin(true)) {
@@ -139,12 +175,11 @@ void startServer(int port, bool securityFlag) {
         ResourceNode * node404  = new ResourceNode("", "POST", &handle404);
 
         serverHTTPS->registerNode(nodeRoot);
-        serverHTTPS->registerNode(node404);
+        serverHTTPS->setDefaultNode(node404);
 
         // Start the server
         serverHTTPS->start();
-        logMessage(LOG, "Authenticated Server started at port 443 in the root path.");
-
+        logMessage("LOG", (String("Authenticated Server started at port ") + port + " in the root path.").c_str());
     } else {
         // Non-secure server: do not load certificates
         serverHTTP = new HTTPServer(port);
@@ -155,11 +190,11 @@ void startServer(int port, bool securityFlag) {
         ResourceNode * node404  = new ResourceNode("", "POST", &handle404);
 
         serverHTTP->registerNode(nodeRoot);
-        serverHTTP->registerNode(node404);
+        serverHTTP->setDefaultNode(node404);
 
         // Start the server
         serverHTTP->start();
-        logMessage(LOG, "Unauthenticated Server started at port 80 in the root path.");
+        logMessage("LOG", (String("Unauthenticated Server started at port ") + port + " in the root path.").c_str());
     }
 }
 

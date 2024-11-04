@@ -21,6 +21,7 @@ void handle404(httpsserver::HTTPRequest * req, httpsserver::HTTPResponse * res);
 void handleRequest(httpsserver::HTTPRequest *req, httpsserver::HTTPResponse *res);
 
 // Main Functions
+void shutdown();
 void startServer(int port, bool useSecureConnection);
 void setupWiFi(const char* ssid, const char* password);
 
