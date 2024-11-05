@@ -61,7 +61,7 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
     // Check the server status connection
     if (!req->isSecure()) {
         // Not-secure or suspicious server connection detected
-        logMessage(LOG, "Not-secure connection detected, be careful.");
+        logMessage(LOG, "Not secure connection detected, be careful.");
     } else {
         // Secure server connection detected
         logMessage(LOG, "Secure connection detected, you are protected.");
@@ -92,12 +92,12 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
         if (bodyContent == storedKey) {
             logMessage(LOG, "Client key matches.");
             res->setStatusCode(200);
-            res->println("Success, the client key and the stored key matches.");
+            res->println("The client key and the stored key matches (200).");
             setLedStatus(greenLED, HIGH);
         } else {
             logMessage(LOG, "Client key does not match.");
             res->setStatusCode(401);
-            res->println("Failure, the client key and the stored key does not match.");
+            res->println("The client key and the stored key does not match (401).");
             setLedStatus(redLED, HIGH);
         }
     } else {
@@ -179,7 +179,7 @@ void startServer(int port, bool securityFlag) {
 
         // Start the server
         serverHTTPS->start();
-        logMessage("LOG", (String("Authenticated Server started at port ") + port + " in the root path.").c_str());
+        logMessage(LOG, (String("Authenticated Server started at port ") + port + " in the root path.").c_str());
     } else {
         // Non-secure server: do not load certificates
         serverHTTP = new HTTPServer(port);
@@ -194,7 +194,7 @@ void startServer(int port, bool securityFlag) {
 
         // Start the server
         serverHTTP->start();
-        logMessage("LOG", (String("Unauthenticated Server started at port ") + port + " in the root path.").c_str());
+        logMessage(LOG, (String("Unauthenticated Server started at port ") + port + " in the root path.").c_str());
     }
 }
 

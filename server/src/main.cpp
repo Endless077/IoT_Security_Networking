@@ -13,7 +13,7 @@
 #include "utils.h"
 
 // Determine if the connection should be secure or not
-bool securityFlag = false;
+bool securityFlag = true;
 
 /* ********************************************************************************************* */
 
@@ -28,8 +28,8 @@ int serverPort = securityFlag ? 443 : 80;
 
 void setup() {
     //Init setup()
-    logMessage("BOOT", "Init setup()");
     Serial.begin(115200);
+    logMessage("BOOT", "Init setup()");
 
     // Setup LED pins
     logMessage("BOOT", "Setup the digital pins...");
@@ -79,7 +79,7 @@ void loop() {
   }
 
   // Add a small delay to avoid excessive CPU usage
-  delay(3000);
+  delay(1000);
 }
 
 /* ********************************************************************************************* */

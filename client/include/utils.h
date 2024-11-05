@@ -5,11 +5,14 @@
 
 struct HttpRequest {
     int port;
+    bool useHTTPS;
+    const char* uri;
     const char* host;
     const char* method;
-    const char* path;
+    const char* payload;
+    const char* connection;
     const char* contentType;
-    const char* body;
+    const char* userAgent;
 };
 
 /* ********************************************************************************************* */

@@ -1,7 +1,7 @@
 // Espressif - ESP32 Client (main.cpp)
 #include <ESPmDNS.h>
-#include <WiFi.h>
 #include <SPIFFS.h>
+#include <WiFi.h>
 
 // Own libraries
 #include "client.h"
@@ -45,36 +45,29 @@ void setup() {
     logMessage("BOOT", (String("Client key retrieved: ") + clientKey).c_str());
     
     // Setup the client key
-    static char bodyBuffer[256];
-    strncpy(bodyBuffer, clientKey.c_str(), sizeof(bodyBuffer) - 1);
-    bodyBuffer[sizeof(bodyBuffer) - 1] = '\0';
+    static char payload[256];
+    strncpy(payload, clientKey.c_str(), sizeof(payload) - 1);
+    payload[sizeof(payload) - 1] = '\0';
     
     // HTTP Request
     request = {
-        serverPort,     // port
-        serverAddress,  // host
-        "POST",         // method
-        "/",            // path
-        "text/plain",   // contentType
-        bodyBuffer,     // body
+        serverPort,             // port
+        securityFlag,           // useHTTPS
+        "/",                    // uri
+        serverAddress,          // host
+        "POST",                 // method
+        payload,                // payload
+        "keep-alive",           // connection
+        "text/plain",           // contentType
+        "Espressif ESP32/1.0"   // userAgent
     };
 
 }
 
 void loop() {
-    // Wait 10 seconds before the next attempt
-    logMessage("BOOT", "Attempting to connect to the server...");
-
-    // Determine the server port based on the connection type
-    if (!securityFlag) {
-        // Non-secure connection
-        logMessage("BOOT", "Attempting non-secure connection...");
-        notSecureConnection(request);
-    } else {
-        // Secure connection
-        logMessage("BOOT", "Attempting secure connection...");
-        secureConnection(request);
-    }
+    // Loop the connection, try a connection every 10 seconds
+    logMessage("BOOT", securityFlag ? "Attempting to secure connection..." : "Attempting to not secure connection...");
+    sendRequest(request);
 
     delay(10000);
 }

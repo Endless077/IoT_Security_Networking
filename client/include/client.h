@@ -6,8 +6,8 @@
 /* ********************************************************************************************* */
 
 // Main Functions
-void secureConnection(const HttpRequest& request);
-void notSecureConnection(const HttpRequest& request);
+void shutdown();
+void sendRequest(const HttpRequest& request);
 void setupWiFi(const char* ssid, const char* password);
 
 /* ********************************************************************************************* */
