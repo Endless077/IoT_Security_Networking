@@ -85,7 +85,8 @@ void sendRequest(const HttpRequest& request) {
             logMessage(LOG, "Client Private Key loaded.");
         }
 
-        // Begin the HTTPS request (choose the type of configuration)
+        // Begin the HTTPS request (uncomment only one the type of configuration)
+        
         //http.begin(url, caCert);
         //http.begin(secureClient, url);
         http.begin(request.host, request.port, request.uri, caCert.c_str());
@@ -99,7 +100,8 @@ void sendRequest(const HttpRequest& request) {
         url = String("http://") + request.host + ":" + request.port + request.uri;
         logMessage(LOG, (String("Trying connection to: ") + url).c_str());
 
-        // Begin the HTTP request (choose the type of configuration)
+        // Begin the HTTP request (uncomment only one the type of configuration)
+        
         //http.begin(url);
         //http.begin(client, url);
         http.begin(request.host, request.port, request.uri);

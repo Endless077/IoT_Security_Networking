@@ -61,7 +61,6 @@ void setup() {
         "text/plain",           // contentType
         "Espressif ESP32/1.0"   // userAgent
     };
-
 }
 
 void loop() {

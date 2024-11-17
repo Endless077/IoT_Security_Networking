@@ -69,40 +69,75 @@ void handleRequest(HTTPRequest *req, HTTPResponse *res) {
 
     // Init size and content of the request
     size_t contentLength = 0;
-    String bodyContent = "";
-
+    String payload = "";
+    
     // Print all Metadata available
-    requestMetadata(contentLength, bodyContent, req, res);
+    requestMetadata(contentLength, payload, req, res);
 
-    // Check if there is any request body
-    if (contentLength > 0) {
-        // Load the stored key from SPIFFS
-        String storedKey = readFileFromSPIFFS("/secret.txt");
+    // Check if the payload type is "text/plain"
+    if (req->getHeader("Content-Type") != "text/plain") {
+        // Logging invalid request payload (unsupported) error
+        logMessage(LOG, "Bad Request: Invalid Request Payload (unsupported).");
 
-        // Check if the stored key is correctly uploaded
-        if (storedKey.isEmpty()) {
-            logMessage(LOG, "Failed to open secret.txt");
-            res->setStatusCode(500);
-            res->println("Error reading server key.");
-            setLedStatus(redLED, HIGH);
-            return;
-        }
-        
-        // Compare the client key with the stored key
-        if (bodyContent == storedKey) {
-            logMessage(LOG, "Client key matches.");
-            res->setStatusCode(200);
-            res->println("The client key and the stored key matches (200).");
-            setLedStatus(greenLED, HIGH);
-        } else {
-            logMessage(LOG, "Client key does not match.");
-            res->setStatusCode(401);
-            res->println("The client key and the stored key does not match (401).");
-            setLedStatus(redLED, HIGH);
-        }
-    } else {
+        // Close the connection
+        res->setStatusCode(415);
+        res->println("Bad Request: invalid request payload (unsupported).");
+        res->setHeader("Connection", "close");
+        res->finalize();
+        return;
+    }
+
+    // Check the payload request is not empty
+    if (contentLength <= 0) {
+        // Logging invalid request payload (empty) error
+        logMessage(LOG, "Invalid Request Payload (empty).");
+        setLedStatus(redLED, HIGH);
+
+        // Close the connection
+        res->setStatusCode(411);
+        res->println("Bad Request: invalid request payload (empty).");
+        res->setHeader("Connection", "close");
+        res->finalize();
+        return;
+    }
+    
+    // Check the payload length valid
+    if (payload.length() != contentLength) {
+        // Logging invalid request payload (mismatch) error
+        logMessage(LOG, "Invalid Request Payload (mismatch).");
+        setLedStatus(redLED, HIGH);
+
+        // Close the connection
         res->setStatusCode(400);
-        res->println("Bad Request: no content.");
+        res->println("Bad Request: invalid request payload (mismatch).");
+        res->setHeader("Connection", "close");
+        res->finalize();
+        return;
+    }
+
+    // Load the stored key from SPIFFS
+    String storedKey = readFileFromSPIFFS("/secret.txt");
+
+    // Check if the stored key is correctly uploaded
+    if (storedKey.isEmpty()) {
+        logMessage(LOG, "Failed to open secret.txt");
+        res->setStatusCode(500);
+        res->println("Error reading server key.");
+        setLedStatus(redLED, HIGH);
+        return;
+    }
+
+    // Compare the client key with the stored key
+    if (payload == storedKey) {
+        logMessage(LOG, "The Client key matches.");
+        res->setStatusCode(200);
+        res->println("The client key and the stored key matches (200).");
+        setLedStatus(greenLED, HIGH);
+    } else {
+        logMessage(LOG, "The Client key does not match.");
+        res->setStatusCode(401);
+        res->println("The client key and the stored key does not match (401).");
+        setLedStatus(redLED, HIGH);
     }
 }
 

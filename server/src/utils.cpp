@@ -48,7 +48,7 @@ void resetService() {
 }
 
 // Request Metadata
-void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HTTPRequest *req, httpsserver::HTTPResponse *res) {
+void requestMetadata(size_t &contentLength, String &payload, httpsserver::HTTPRequest *req, httpsserver::HTTPResponse *res) {
     // Logging the Request Metadata
     logMessage("Metadata", "----- Request Metadata -----");
 
@@ -92,16 +92,16 @@ void requestMetadata(size_t &contentLength, String &bodyContent, httpsserver::HT
         buffer[bytesRead] = '\0';
 
         // Set the body content
-        bodyContent = String(buffer);
+        payload = String(buffer);
 
         // Log the body content
-        logMessage("Metadata", (String("Body Content: ") + bodyContent).c_str());
+        logMessage("Metadata", (String("Request Body: ") + payload).c_str());
 
         // Free the buffer
         delete[] buffer;
     } else {
-        bodyContent = "";
-        logMessage("Metadata", "No Body Content");
+        payload = "";
+        logMessage("Metadata", "Error: no content.");
     }
 
     logMessage("Metadata", "----------------------------");
