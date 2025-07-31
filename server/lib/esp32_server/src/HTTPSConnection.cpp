@@ -1,6 +1,5 @@
 #include "HTTPSConnection.hpp"
 
-#include "server.h"
 void handleHandshake(int status, const char* msg);
 
 namespace httpsserver {
@@ -78,7 +77,6 @@ int HTTPSConnection::initialize(int serverSocketID, SSL_CTX * sslCtx, HTTPHeader
  */
 void HTTPSConnection::handleRequest(int status, const char* msg) {
   // Add-On: Run any request management function
-  ::handleHandshake(status, msg);
 }
 
 void HTTPSConnection::closeConnection() {

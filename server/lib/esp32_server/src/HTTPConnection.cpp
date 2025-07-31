@@ -1,6 +1,5 @@
 #include "HTTPConnection.hpp"
 
-#include "server.h"
 void handleHandshake(int status, const char* msg);
 
 namespace httpsserver {

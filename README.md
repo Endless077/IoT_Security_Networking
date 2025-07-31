@@ -1,4 +1,4 @@
-![Logo](https://github.com/Endless077/IoT-Security-Networking/blob/main/espressif_logo.svg)
+![Wallpaper](https://github.com/Endless077/IoT-Security-Networking/blob/main/espressif_logo.svg)
 
 # IoT Security Networking 🌐🔐
 
